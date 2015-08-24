@@ -5,6 +5,9 @@ import (
 	"os"
 	"fmt"
 	"strconv"
+	_ "github.com/lib/pq"
+	"database/sql"
+	"log"
 )
 
 type Test struct {
@@ -44,5 +47,26 @@ func main() {
 	conn_string += " user=" + dbuser
 	conn_string += " password=" + dbpass
 
-	fmt.Println(conn_string)
+	db, err := sql.Open("postgres", conn_string)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer db.Close()
+
+	for _, test := range configuration.Tests {
+		for _, query := range test.Queries {
+			var cnt int
+			err = db.QueryRow(query).Scan(&cnt)
+			switch {
+			case err == sql.ErrNoRows:
+				log.Printf("No rows returned")
+			case err != nil:
+				log.Fatal(err)
+			default:
+				fmt.Printf("Count:%d\n",cnt)
+			}
+		}
+	}
+
 }
