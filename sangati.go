@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"fmt"
+	"strconv"
 )
 
 type Test struct {
@@ -12,11 +13,19 @@ type Test struct {
 }
 
 type Configuration struct {
+	Host	string
+	Port	int
+	DbName	string
 	Tests	[]Test
 }
 
 func main() {
-	file, err := os.Open("src/github.com/alienfluid/sangati/test.json")
+	// Get DB username and password from environment variables
+	dbuser := os.Getenv("DBUSER")
+	dbpass := os.Getenv("DBPASS")
+
+	// Read the configuration file
+	file, err := os.Open("test.json")
 	if err != nil {
 		fmt.Println("error reading file:", err)
 	}
@@ -29,5 +38,11 @@ func main() {
 		fmt.Println("error:", err)
 	}
 
-	fmt.Println(configuration.Tests)
+	conn_string := "host=" + configuration.Host
+	conn_string += " port=" + strconv.Itoa(configuration.Port)
+	conn_string += " dbname=" + configuration.DbName
+	conn_string += " user=" + dbuser
+	conn_string += " password=" + dbpass
+
+	fmt.Println(conn_string)
 }
