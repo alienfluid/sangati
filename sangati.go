@@ -11,6 +11,7 @@ import (
 )
 
 type Test struct {
+	Name    string
 	Queries	[]string
 	Count	interface{}
 }
@@ -55,18 +56,55 @@ func main() {
 	defer db.Close()
 
 	for _, test := range configuration.Tests {
-		for _, query := range test.Queries {
+		if len(test.Queries) == 1 {
+			query := test.Queries[0]
 			var cnt int
 			err = db.QueryRow(query).Scan(&cnt)
 			switch {
-			case err == sql.ErrNoRows:
-				log.Printf("No rows returned")
 			case err != nil:
 				log.Fatal(err)
 			default:
-				fmt.Printf("Count:%d\n",cnt)
+				if cnt != test.Count {
+					log.Fatal("Test %s failed. Expected count %d, received count %d", test.Name, test.Count, cnt)
+				}
 			}
+
+		} else if len(test.Queries) == 2 {
+
+			var op string
+			switch v := test.Count.(type) {
+			case string:
+				op = test.Count
+			default:
+				log.Fatal("Invalid operator type specified")
+			}
+			
+			query1 := test.Queries[0]
+			query2 := test.Queries[1]
+
+			var cnt1, cnt2 int
+
+			err = db.QueryRow(query1).Scan(&cnt1)
+			switch {
+			case err != nil:
+				log.Fatal(err)
+			default:
+			}
+
+			err = db.QueryRow(query2).Scan(&cnt2)
+			switch {
+			case err != nil:
+				log.Fatal(err)
+			default:
+				if 
+			}
+
 		}
+
+		} else {
+				log.Fatal("Incorrect number of queries in test %s\n", test.Name)
+		}
+
 	}
 
 }
