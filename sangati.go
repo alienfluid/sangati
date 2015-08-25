@@ -1,60 +1,70 @@
 package main
 
 import (
-	"encoding/json"
-	"os"
-	"fmt"
-	"strconv"
-	_ "github.com/lib/pq"
 	"database/sql"
+	_ "github.com/lib/pq"
 	"log"
+	"os"
+	"strconv"
 )
 
-type Test struct {
-	Name    string
-	Queries	[]string
-	Count	interface{}
-}
+func buildConnectionString(conf *Configuration) string {
+	var connString string
 
-type Configuration struct {
-	Host	string
-	Port	int
-	DbName	string
-	Tests	[]Test
-}
-
-func main() {
-	// Get DB username and password from environment variables
+	// The username and password for the db must be read from the environment
+	// variables
 	dbuser := os.Getenv("DBUSER")
 	dbpass := os.Getenv("DBPASS")
 
+	connString = "host=" + conf.Host
+	connString += " port=" + strconv.Itoa(conf.Port)
+	connString += " dbname=" + conf.DbName
+	connString += " user=" + dbuser
+	connString += " password=" + dbpass
+
+	return connString
+}
+
+func compareValues(val1 int, val2 int, op string) bool {
+	switch {
+	case op == "eq":
+		return val1 == val2
+	case op == "lt":
+		return val1 < val2
+	case op == "gt":
+		return val1 > val2
+	case op == "lte":
+		return val1 <= val2
+	case op == "gte":
+		return val1 >= val2
+	default:
+		log.Fatal("Invalid operator '", op, "' specified")
+	}
+	return false
+}
+
+func main() {
+	var err error
+
 	// Read the configuration file
-	file, err := os.Open("test.json")
+	var configuration Configuration
+	err = parseConfigurationFile("src/github.com/alienfluid/sangati/test.json", &configuration)
 	if err != nil {
-		fmt.Println("error reading file:", err)
+		log.Fatal("Could not find configuration file")
 	}
 
-	decoder := json.NewDecoder(file)
-	configuration := Configuration{}
-
-	err = decoder.Decode(&configuration)
-	if err != nil {
-		fmt.Println("error:", err)
-	}
-
-	conn_string := "host=" + configuration.Host
-	conn_string += " port=" + strconv.Itoa(configuration.Port)
-	conn_string += " dbname=" + configuration.DbName
-	conn_string += " user=" + dbuser
-	conn_string += " password=" + dbpass
-
-	db, err := sql.Open("postgres", conn_string)
+	// Build the connection string to connect to the database and then connect
+	connString := buildConnectionString(&configuration)
+	db, err := sql.Open("postgres", connString)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer db.Close()
 
+	var failed, succeeded int
+
+	// Run through the tests
 	for _, test := range configuration.Tests {
 		if len(test.Queries) == 1 {
 			query := test.Queries[0]
@@ -62,49 +72,48 @@ func main() {
 			err = db.QueryRow(query).Scan(&cnt)
 			switch {
 			case err != nil:
-				log.Fatal(err)
+				log.Fatal("Error executing test '", test.Name, "' Error:", err)
 			default:
-				if cnt != test.Count {
-					log.Fatal("Test %s failed. Expected count %d, received count %d", test.Name, test.Count, cnt)
+				if compareValues(cnt, test.Value, test.Operator) {
+					log.Printf("Test '%v' PASSED", test.Name)
+					succeeded += 1
+				} else {
+					log.Printf("Test '%v' FAILED. Expected %v, Received %v, Operator '%v'", test.Name, test.Value, cnt, test.Operator)
+					failed += 1
 				}
 			}
 
 		} else if len(test.Queries) == 2 {
-
-			var op string
-			switch v := test.Count.(type) {
-			case string:
-				op = test.Count
-			default:
-				log.Fatal("Invalid operator type specified")
-			}
-			
 			query1 := test.Queries[0]
 			query2 := test.Queries[1]
-
 			var cnt1, cnt2 int
 
 			err = db.QueryRow(query1).Scan(&cnt1)
 			switch {
 			case err != nil:
-				log.Fatal(err)
+				log.Fatal("Error executing test '", test.Name, "' Error:", err)
 			default:
 			}
 
 			err = db.QueryRow(query2).Scan(&cnt2)
 			switch {
 			case err != nil:
-				log.Fatal(err)
+				log.Fatal("Error executing test '", test.Name, "' Error:", err)
 			default:
-				if 
+				if compareValues(cnt1, cnt2, test.Operator) {
+					log.Printf("Test '%v' PASSED", test.Name)
+					succeeded += 1
+				} else {
+					log.Printf("Test '%v' FAILED. Value1: %v, Value2: %v, Operator '%v'", test.Name, cnt1, cnt2, test.Operator)
+					failed += 1
+				}
 			}
 
-		}
-
 		} else {
-				log.Fatal("Incorrect number of queries in test %s\n", test.Name)
+			log.Fatal("Incorrect number of queries in test %s\n", test.Name)
 		}
-
 	}
+
+	log.Printf("Total PASSED: %v, Total FAILED: %v", succeeded, failed)
 
 }
