@@ -1,0 +1,25 @@
+{
+	"Host": "myhost.somedomain.com",
+	"Port": 5432,
+	"DbName": "main",
+	"Tests": [
+				{
+					"Name": "At least one transaction in the last day",
+					"Queries": ["SELECT COUNT(*) FROM transactions WHERE created_on > NOW() - INTERVAL '1 DAY'"],
+					"Value": 0,
+					"Operator": "gt"
+				},
+				{
+					"Name": "Check for spikes in errors",
+					"Queries": ["SELECT COUNT(*) FROM error_log WHERE created_on > NOW() - INTERVAL '1 DAY'"],
+					"Value": 100000,
+					"Operator": "lt"
+				},
+				{
+					"Name": "Distinct users must be greater than on equal to distinct companies",
+					"Queries": ["SELECT COUNT(DISTINCT id) FROM user",
+								"SELECT COUNT(DISTINCT id) FROM company"],
+					"Operator": "gte"
+				}
+			]
+}
