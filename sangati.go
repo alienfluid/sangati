@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	_ "github.com/lib/pq"
 	"log"
 	"os"
@@ -46,11 +47,19 @@ func compareValues(val1 int, val2 int, op string) bool {
 func main() {
 	var err error
 
+	// Get the path to configuation file
+	confFilePtr := flag.String("c", "", "The full path to the configuration file")
+	flag.Parse()
+
+	if *confFilePtr == "" {
+		log.Fatal("Configuration file not specified.")
+	}
+
 	// Read the configuration file
 	var configuration Configuration
-	err = parseConfigurationFile("src/github.com/alienfluid/sangati/test.json", &configuration)
+	err = parseConfigurationFile(*confFilePtr, &configuration)
 	if err != nil {
-		log.Fatal("Could not find configuration file")
+		log.Fatal("Could not find configuration file, Error: ", err)
 	}
 
 	// Build the connection string to connect to the database and then connect
