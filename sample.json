@@ -1,25 +1,21 @@
 {
-	"Host": "myhost.somedomain.com",
-	"Port": 5432,
-	"DbName": "main",
+	"Host": "dwp.rsdb.axialmarket.com",
+	"Port": 5439,
+	"DbName": "dwp",
 	"Tests": [
 				{
-					"Name": "At least one transaction in the last day",
-					"Queries": ["SELECT COUNT(*) FROM transactions WHERE created_on > NOW() - INTERVAL '1 DAY'"],
-					"Value": 0,
+					"Name": "Active company count greater than 1",
+                    "Types": ["int"],
+					"Queries": ["SELECT COUNT(*) FROM company_dimension WHERE is_active = True"],
+					"Values": ["1"],
 					"Operator": "gt"
 				},
 				{
-					"Name": "Check for spikes in errors",
-					"Queries": ["SELECT COUNT(*) FROM error_log WHERE created_on > NOW() - INTERVAL '1 DAY'"],
-					"Value": 100000,
+					"Name": "Ten users",
+					"Types": ["date", "string", "int"],
+                    "Queries": ["SELECT date(tos_date), email, 42 from user_dimension limit 10"],
+					"Values": ["2015-01-01", "ahmedf@gmail.com", "42"],
 					"Operator": "lt"
-				},
-				{
-					"Name": "Distinct users must be greater than on equal to distinct companies",
-					"Queries": ["SELECT COUNT(DISTINCT id) FROM user",
-								"SELECT COUNT(DISTINCT id) FROM company"],
-					"Operator": "gte"
 				}
 			]
 }

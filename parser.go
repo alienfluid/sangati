@@ -10,7 +10,7 @@ type Test struct {
 	Types	 []string
 	Queries  []string
 	Operator string
-	Value    []string
+	Values   []string
 }
 
 type Configuration struct {

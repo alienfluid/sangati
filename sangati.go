@@ -2,11 +2,14 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"flag"
 	_ "github.com/lib/pq"
 	"log"
 	"os"
+	"reflect"
 	"strconv"
+	"time"
 )
 
 func buildConnectionString(conf *Configuration) string {
@@ -44,21 +47,21 @@ func compareValues(val1 int, val2 int, op string) bool {
 	return false
 }
 
-func validateTestStructure(test *Test) bool {
+func validateTestStructure(test *Test) error {
 	// Verify that at least one type is specified and that all types are supported
 	if len(test.Types) < 1 {
-		return false
+		return errors.New("The Types array must contain at least one supported type")
 	}
 	for _, typ := range test.Types {
 		if typ != "string" && typ != "int" && typ != "date" {
-			return false
+			return errors.New("The Types array contains an unsupported type")
 		}
 	}
 
 	// If Values are specified, the should be of the same length as the Types
 	if len(test.Values) > 0 {
 		if len(test.Values) != len(test.Types) {
-			return false
+			return errors.New("The Types array and the Values array are not of the same length")
 		}
 	}
 
@@ -67,18 +70,18 @@ func validateTestStructure(test *Test) bool {
 		for index, typ := range test.Types {
 			switch {
 				case typ == "string":
-					if reflect.TypeOf(test.Values[index]) != "string" {
-						return false
+					if reflect.TypeOf(test.Values[index]) != reflect.TypeOf(" ") {
+						return errors.New("Value of type string expected")
 					}
 				case typ == "int":
 					_, err := strconv.Atoi(test.Values[index])
 					if err != nil {
-						return false
+						return errors.New("Value of type int expected")
 					}
-				case type == "date":
+				case typ == "date":
 					_, err := time.Parse("2006-02-01", test.Values[index])
 					if err != nil {
-						return false
+						return errors.New("Value of type date (YYYY-MM-DD) expected")
 					}
 				default:
 					log.Fatal("Invalid type specified (error verifying values)")
@@ -86,7 +89,7 @@ func validateTestStructure(test *Test) bool {
 		}
 	}
 
-	return true
+	return nil
 }
 
 func main() {
@@ -104,7 +107,7 @@ func main() {
 	var configuration Configuration
 	err = parseConfigurationFile(*confFilePtr, &configuration)
 	if err != nil {
-		log.Fatal("Could not find configuration file, Error: ", err)
+		log.Fatal("Could not parse configuration file, Error: ", err)
 	}
 
 	// Build the connection string to connect to the database and then connect
@@ -120,10 +123,33 @@ func main() {
 
 	// Run through the tests
 	for _, test := range configuration.Tests {
+		
+		// First validate whether the test structure is correct
+		err = validateTestStructure(&test)
+		if err != nil {
+			log.Printf("Test '%v' FAILED. Invalid test structure: %v", test.Name, err)
+			failed += 1
+		}
 		if len(test.Queries) == 1 {
+			// Handle case where the result is compared to the value specified in the test
 			query := test.Queries[0]
-			var cnt int
-			err = db.QueryRow(query).Scan(&cnt)
+			
+			// Make a slice for the values
+			values := make([]interface{}, len(test.Values))
+			scanArgs := make([]interface{}, len(values))
+			for i := range values {
+				scanArgs[i] = &values[i]
+			}
+			
+			err = db.QueryRow(query).Scan(scanArgs...)
+
+			// Validate whether the returned data is of type specified in the test
+			for _, value := range values {
+				log.Printf("%v", reflect.TypeOf(value))
+					
+			}
+		
+			/*
 			switch {
 			case err != nil:
 				log.Fatal("Error executing test '", test.Name, "' Error:", err)
@@ -136,6 +162,7 @@ func main() {
 					failed += 1
 				}
 			}
+			*/
 
 		} else if len(test.Queries) == 2 {
 			query1 := test.Queries[0]
@@ -167,7 +194,7 @@ func main() {
 			log.Fatal("Incorrect number of queries in test %s\n", test.Name)
 		}
 	}
-
+	/*
 	log.Printf("Total PASSED: %v, Total FAILED: %v", succeeded, failed)
-
+	*/
 }
