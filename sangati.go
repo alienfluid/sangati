@@ -44,6 +44,51 @@ func compareValues(val1 int, val2 int, op string) bool {
 	return false
 }
 
+func validateTestStructure(test *Test) bool {
+	// Verify that at least one type is specified and that all types are supported
+	if len(test.Types) < 1 {
+		return false
+	}
+	for _, typ := range test.Types {
+		if typ != "string" && typ != "int" && typ != "date" {
+			return false
+		}
+	}
+
+	// If Values are specified, the should be of the same length as the Types
+	if len(test.Values) > 0 {
+		if len(test.Values) != len(test.Types) {
+			return false
+		}
+	}
+
+	// If Values are specified, verify that they can convert to the right types
+	if len(test.Values) > 0 {
+		for index, typ := range test.Types {
+			switch {
+				case typ == "string":
+					if reflect.TypeOf(test.Values[index]) != "string" {
+						return false
+					}
+				case typ == "int":
+					_, err := strconv.Atoi(test.Values[index])
+					if err != nil {
+						return false
+					}
+				case type == "date":
+					_, err := time.Parse("2006-02-01", test.Values[index])
+					if err != nil {
+						return false
+					}
+				default:
+					log.Fatal("Invalid type specified (error verifying values)")
+			}
+		}
+	}
+
+	return true
+}
+
 func main() {
 	var err error
 

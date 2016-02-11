@@ -7,9 +7,10 @@ import (
 
 type Test struct {
 	Name     string
+	Types	 []string
 	Queries  []string
 	Operator string
-	Value    int
+	Value    []string
 }
 
 type Configuration struct {
