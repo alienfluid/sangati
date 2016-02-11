@@ -253,54 +253,77 @@ func main() {
 			}
 			defer rows2.Close()
 
-			// Make a slice for the values
-			values1 := make([]interface{}, len(test.Types))
-			scanArgs1 := make([]interface{}, len(values1))
-			for i := range values1 {
-				scanArgs1[i] = &values1[i]
-			}
-
-			values2 := make([]interface{}, len(test.Types))
-			scanArgs2 := make([]interface{}, len(values2))
-			for i := range values2 {
-				scanArgs2[i] = &values2[i]
-			}
-
-			list1 := make([][]interface{}, 1)
+			list1 := make([][]interface{}, 0)
 			for rows1.Next() {
-				rows1.Scan(scanArgs1...)
+				// Make a slice for the values
+				values1 := make([]interface{}, len(test.Types))
+				scanArgs1 := make([]interface{}, len(values1))
+				for i := range values1 {
+					scanArgs1[i] = &values1[i]
+				}
+				err = rows1.Scan(scanArgs1...)
+				if err != nil {
+					log.Fatal(err)
+				}
+				list1 = append(list1, values1)
 			}
 
 			if err := rows1.Err(); err != nil {
 				log.Fatal(err)
 			}
 
-			err = db.QueryRow(query1).Scan(&cnt1)
-			switch {
-			case err != nil:
-				log.Fatal("Error executing test '", test.Name, "' Error:", err)
-			default:
+			list2 := make([][]interface{}, 0)
+			for rows2.Next() {
+				// Make a slice for the values
+				values2 := make([]interface{}, len(test.Types))
+				scanArgs2 := make([]interface{}, len(values2))
+				for i := range values2 {
+					scanArgs2[i] = &values2[i]
+				}
+				err = rows2.Scan(scanArgs2...)
+				if err != nil {
+					log.Fatal(err)
+				}
+				list2 = append(list2, values2)
 			}
 
-			err = db.QueryRow(query2).Scan(&cnt2)
-			switch {
-			case err != nil:
-				log.Fatal("Error executing test '", test.Name, "' Error:", err)
-			default:
-				if compareInt64(int64(cnt1), int64(cnt2), test.Operator) {
-					log.Printf("Test '%v' PASSED", test.Name)
-					succeeded += 1
-				} else {
-					log.Printf("Test '%v' FAILED. Value1: %v, Value2: %v, Operator '%v'", test.Name, cnt1, cnt2, test.Operator)
-					failed += 1
+			if err := rows2.Err(); err != nil {
+				log.Fatal(err)
+			}
+
+			if len(list1) != len(list2) {
+				log.Fatal("The two queries did not return the same number of items")
+			}
+
+			var failure bool = false
+			for index, v1 := range list1 {
+				v2 := list2[index]
+
+				for i2 := range v1 {
+					if !reflect.DeepEqual(v1[i2], v2[i2]) {
+						failure = true
+						break
+					}
 				}
+
+				if failure {
+					break
+				}
+			}
+
+			if failure {
+				log.Printf("Test '%v' FAILED", test.Name)
+				failed += 1
+			} else {
+				log.Printf("Test '%v' SUCCEEDED", test.Name)
+				succeeded += 1
 			}
 
 		} else {
 			log.Fatal("Incorrect number of queries in test %s\n", test.Name)
 		}
 	}
-	/*
-		log.Printf("Total PASSED: %v, Total FAILED: %v", succeeded, failed)
-	*/
+
+	log.Printf("Total PASSED: %v, Total FAILED: %v", succeeded, failed)
+
 }

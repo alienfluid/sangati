@@ -16,6 +16,13 @@
                     "Queries": ["SELECT date(tos_date), email, 42 from user_dimension order by user_dimension_id limit 10"],
 					"Values": ["2015-01-01", "ahmedf@gmail.com", "42"],
 					"Operator": "lt"
-				}
+				},
+				{
+					"Name": "Compare two queries",
+					"Types": ["string", "date"],
+                    "Queries": ["SELECT email, date(created_on) FROM user_dimension ORDER BY user_dimension_id LIMIT 100", 
+                                "SELECT email, date(updated_on) FROM user_dimension ORDER BY user_dimension_id LIMIT 100"],
+					"Values": []
+				}               
 			]
 }
