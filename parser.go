@@ -7,7 +7,7 @@ import (
 
 type Test struct {
 	Name     string
-	Types	 []string
+	Types    []string
 	Queries  []string
 	Operator string
 	Values   []string

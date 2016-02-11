@@ -105,22 +105,22 @@ func validateTestStructure(test *Test) error {
 	if len(test.Values) > 0 {
 		for index, typ := range test.Types {
 			switch {
-				case typ == "string":
-					if reflect.TypeOf(test.Values[index]) != reflect.TypeOf(" ") {
-						return errors.New("Value of type string expected")
-					}
-				case typ == "int":
-					_, err := strconv.Atoi(test.Values[index])
-					if err != nil {
-						return errors.New("Value of type int expected")
-					}
-				case typ == "date":
-					_, err := time.Parse("2006-02-01", test.Values[index])
-					if err != nil {
-						return errors.New("Value of type date (YYYY-MM-DD) expected")
-					}
-				default:
-					log.Fatal("Invalid type specified (error verifying values)")
+			case typ == "string":
+				if reflect.TypeOf(test.Values[index]) != reflect.TypeOf(" ") {
+					return errors.New("Value of type string expected")
+				}
+			case typ == "int":
+				_, err := strconv.Atoi(test.Values[index])
+				if err != nil {
+					return errors.New("Value of type int expected")
+				}
+			case typ == "date":
+				_, err := time.Parse("2006-02-01", test.Values[index])
+				if err != nil {
+					return errors.New("Value of type date (YYYY-MM-DD) expected")
+				}
+			default:
+				log.Fatal("Invalid type specified (error verifying values)")
 			}
 		}
 	}
@@ -159,100 +159,99 @@ func main() {
 
 	// Run through the tests
 	for _, test := range configuration.Tests {
-		
+
 		// First validate whether the test structure is correct
 		err = validateTestStructure(&test)
 		if err != nil {
 			log.Printf("Test '%v' FAILED. Invalid test structure: %v", test.Name, err)
 			failed += 1
-            continue
+			continue
 		}
-        
+
 		if len(test.Queries) == 1 {
 			// Handle case where the result is compared to the value specified in the test
 			query := test.Queries[0]
-			
+
 			// Make a slice for the values
 			values := make([]interface{}, len(test.Values))
 			scanArgs := make([]interface{}, len(values))
 			for i := range values {
 				scanArgs[i] = &values[i]
 			}
-			
+
 			err = db.QueryRow(query).Scan(scanArgs...)
-            if err != nil {
-                log.Printf("Test '%v' FAILED. Error querying the database: %v", test.Name, err)
-                failed += 1
-                continue
-            }
+			if err != nil {
+				log.Printf("Test '%v' FAILED. Error querying the database: %v", test.Name, err)
+				failed += 1
+				continue
+			}
 
 			// Validate whether the returned data is of type specified in the test
-            var failure bool = false
+			var failure bool = false
 			for i, value := range values {
 				switch test.Types[i] {
-                    case "int":
-                        expected, err := strconv.Atoi(test.Values[i])
-                        if err != nil {
-                            log.Fatal("Incorrect expected value type")
-                        }
-                        
-                        if !compareInt64(value.(int64), int64(expected), test.Operator) {
-                            failure = true
-                        } 
-                    case "string":
-                        expected := test.Values[i]
-                        
-                        b, ok := value.([]byte)
-                        if !ok {
-                            log.Fatal("Incorrect returned value type")
-                        }
-                        
-                        if !compareString(string(b), expected, test.Operator) {
-                            failure = true
-                        }
-                    case "date":
-                        expected, err := time.Parse("2006-02-01", test.Values[i])
-					    if err != nil {
-						  log.Fatal("Incorrect expected value type")
-					    }
-                        
-                        if !compareTime(value.(time.Time), expected, test.Operator) {
-                            failure = true
-                        }                         
-                    default:
-                        failure = true
-                }
-                
-                if failure {
-                    break
-                }					
+				case "int":
+					expected, err := strconv.Atoi(test.Values[i])
+					if err != nil {
+						log.Fatal("Incorrect expected value type")
+					}
+
+					if !compareInt64(value.(int64), int64(expected), test.Operator) {
+						failure = true
+					}
+				case "string":
+					expected := test.Values[i]
+
+					b, ok := value.([]byte)
+					if !ok {
+						log.Fatal("Incorrect returned value type")
+					}
+
+					if !compareString(string(b), expected, test.Operator) {
+						failure = true
+					}
+				case "date":
+					expected, err := time.Parse("2006-02-01", test.Values[i])
+					if err != nil {
+						log.Fatal("Incorrect expected value type")
+					}
+
+					if !compareTime(value.(time.Time), expected, test.Operator) {
+						failure = true
+					}
+				default:
+					failure = true
+				}
+
+				if failure {
+					break
+				}
 			}
-            
-            if !failure {
-                log.Printf("Test '%v' PASSED", test.Name)
-                succeeded += 1
-            } else {
-                log.Printf("Test '%v' FAILED Returned data: %v", test.Name, values)
-                failed += 1
-            }
-		
+
+			if !failure {
+				log.Printf("Test '%v' PASSED", test.Name)
+				succeeded += 1
+			} else {
+				log.Printf("Test '%v' FAILED Returned data: %v", test.Name, values)
+				failed += 1
+			}
 
 		} else if len(test.Queries) == 2 {
-            // Handle case where the result must be compared to the output of another query
+			// Handle case where the result must be compared to the output of another query
 			query1 := test.Queries[0]
 			query2 := test.Queries[1]
 
-            rows1, err := db.Query(query1)
-            if err != nil {
-                    log.Fatal(err)
-            }
-            defer rows1.Close()
-            
-            rows2, err := db.Query(query2)
-            if err != nil {
-                    log.Fatal(err)
-            }
-            defer rows2.Close()
+			rows1, err := db.Query(query1)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer rows1.Close()
+
+			rows2, err := db.Query(query2)
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer rows2.Close()
 
 			// Make a slice for the values
 			values1 := make([]interface{}, len(test.Types))
@@ -267,15 +266,15 @@ func main() {
 				scanArgs2[i] = &values2[i]
 			}
 
-            list1 := make([][]interface{}, 1)                                    
-            for rows1.Next() {
-                rows1.Scan(scanArgs1...)
-            }
-            
-            if err := rows1.Err(); err != nil {
-                    log.Fatal(err)
-            }
-            
+			list1 := make([][]interface{}, 1)
+			for rows1.Next() {
+				rows1.Scan(scanArgs1...)
+			}
+
+			if err := rows1.Err(); err != nil {
+				log.Fatal(err)
+			}
+
 			err = db.QueryRow(query1).Scan(&cnt1)
 			switch {
 			case err != nil:
@@ -302,6 +301,6 @@ func main() {
 		}
 	}
 	/*
-	log.Printf("Total PASSED: %v, Total FAILED: %v", succeeded, failed)
+		log.Printf("Total PASSED: %v, Total FAILED: %v", succeeded, failed)
 	*/
 }
