@@ -29,7 +29,43 @@ func buildConnectionString(conf *Configuration) string {
 	return connString
 }
 
-func compareValues(val1 int, val2 int, op string) bool {
+func compareTime(val1 time.Time, val2 time.Time, op string) bool {
+	switch {
+	case op == "eq":
+		return val1.Equal(val2)
+	case op == "lt":
+		return val1.Before(val2)
+	case op == "gt":
+		return val1.After(val2)
+	case op == "lte":
+		return val1.Before(val2) || val1.Equal(val2)
+	case op == "gte":
+		return val1.After(val2) || val1.Equal(val2)
+	default:
+		log.Fatal("Invalid operator '", op, "' specified")
+	}
+	return false
+}
+
+func compareInt64(val1 int64, val2 int64, op string) bool {
+	switch {
+	case op == "eq":
+		return val1 == val2
+	case op == "lt":
+		return val1 < val2
+	case op == "gt":
+		return val1 > val2
+	case op == "lte":
+		return val1 <= val2
+	case op == "gte":
+		return val1 >= val2
+	default:
+		log.Fatal("Invalid operator '", op, "' specified")
+	}
+	return false
+}
+
+func compareString(val1 string, val2 string, op string) bool {
 	switch {
 	case op == "eq":
 		return val1 == val2
@@ -129,7 +165,9 @@ func main() {
 		if err != nil {
 			log.Printf("Test '%v' FAILED. Invalid test structure: %v", test.Name, err)
 			failed += 1
+            continue
 		}
+        
 		if len(test.Queries) == 1 {
 			// Handle case where the result is compared to the value specified in the test
 			query := test.Queries[0]
@@ -142,33 +180,102 @@ func main() {
 			}
 			
 			err = db.QueryRow(query).Scan(scanArgs...)
+            if err != nil {
+                log.Printf("Test '%v' FAILED. Error querying the database: %v", test.Name, err)
+                failed += 1
+                continue
+            }
 
 			// Validate whether the returned data is of type specified in the test
-			for _, value := range values {
-				log.Printf("%v", reflect.TypeOf(value))
-					
+            var failure bool = false
+			for i, value := range values {
+				switch test.Types[i] {
+                    case "int":
+                        expected, err := strconv.Atoi(test.Values[i])
+                        if err != nil {
+                            log.Fatal("Incorrect expected value type")
+                        }
+                        
+                        if !compareInt64(value.(int64), int64(expected), test.Operator) {
+                            failure = true
+                        } 
+                    case "string":
+                        expected := test.Values[i]
+                        
+                        b, ok := value.([]byte)
+                        if !ok {
+                            log.Fatal("Incorrect returned value type")
+                        }
+                        
+                        if !compareString(string(b), expected, test.Operator) {
+                            failure = true
+                        }
+                    case "date":
+                        expected, err := time.Parse("2006-02-01", test.Values[i])
+					    if err != nil {
+						  log.Fatal("Incorrect expected value type")
+					    }
+                        
+                        if !compareTime(value.(time.Time), expected, test.Operator) {
+                            failure = true
+                        }                         
+                    default:
+                        failure = true
+                }
+                
+                if failure {
+                    break
+                }					
 			}
+            
+            if !failure {
+                log.Printf("Test '%v' PASSED", test.Name)
+                succeeded += 1
+            } else {
+                log.Printf("Test '%v' FAILED Returned data: %v", test.Name, values)
+                failed += 1
+            }
 		
-			/*
-			switch {
-			case err != nil:
-				log.Fatal("Error executing test '", test.Name, "' Error:", err)
-			default:
-				if compareValues(cnt, test.Value, test.Operator) {
-					log.Printf("Test '%v' PASSED", test.Name)
-					succeeded += 1
-				} else {
-					log.Printf("Test '%v' FAILED. Expected %v, Received %v, Operator '%v'", test.Name, test.Value, cnt, test.Operator)
-					failed += 1
-				}
-			}
-			*/
 
 		} else if len(test.Queries) == 2 {
+            // Handle case where the result must be compared to the output of another query
 			query1 := test.Queries[0]
 			query2 := test.Queries[1]
-			var cnt1, cnt2 int
 
+            rows1, err := db.Query(query1)
+            if err != nil {
+                    log.Fatal(err)
+            }
+            defer rows1.Close()
+            
+            rows2, err := db.Query(query2)
+            if err != nil {
+                    log.Fatal(err)
+            }
+            defer rows2.Close()
+
+			// Make a slice for the values
+			values1 := make([]interface{}, len(test.Types))
+			scanArgs1 := make([]interface{}, len(values1))
+			for i := range values1 {
+				scanArgs1[i] = &values1[i]
+			}
+
+			values2 := make([]interface{}, len(test.Types))
+			scanArgs2 := make([]interface{}, len(values2))
+			for i := range values2 {
+				scanArgs2[i] = &values2[i]
+			}
+
+            list1 := make([][]interface{}, 1)                                    
+            for rows1.Next() {
+                rows1.Scan(scanArgs1...)
+            }
+            
+            if err := rows1.Err(); err != nil {
+                    log.Fatal(err)
+            }
+            
 			err = db.QueryRow(query1).Scan(&cnt1)
 			switch {
 			case err != nil:
@@ -181,7 +288,7 @@ func main() {
 			case err != nil:
 				log.Fatal("Error executing test '", test.Name, "' Error:", err)
 			default:
-				if compareValues(cnt1, cnt2, test.Operator) {
+				if compareInt64(int64(cnt1), int64(cnt2), test.Operator) {
 					log.Printf("Test '%v' PASSED", test.Name)
 					succeeded += 1
 				} else {
