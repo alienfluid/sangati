@@ -12,17 +12,17 @@ import (
 	"time"
 )
 
-func buildConnectionString(conf *Configuration) string {
+func buildConnectionString(database *Database) string {
 	var connString string
 
 	// The username and password for the db must be read from the environment
 	// variables
-	dbuser := os.Getenv("DBUSER")
-	dbpass := os.Getenv("DBPASS")
+	dbuser := os.Getenv("DBUSER" + strconv.Itoa(database.Index))
+	dbpass := os.Getenv("DBPASS" + strconv.Itoa(database.Index))
 
-	connString = "host=" + conf.Host
-	connString += " port=" + strconv.Itoa(conf.Port)
-	connString += " dbname=" + conf.DbName
+	connString = "host=" + database.Host
+	connString += " port=" + strconv.Itoa(database.Port)
+	connString += " dbname=" + database.DbName
 	connString += " user=" + dbuser
 	connString += " password=" + dbpass
 
@@ -146,14 +146,16 @@ func main() {
 		log.Fatal("Could not parse configuration file, Error: ", err)
 	}
 
-	// Build the connection string to connect to the database and then connect
-	connString := buildConnectionString(&configuration)
-	db, err := sql.Open("postgres", connString)
-	if err != nil {
-		log.Fatal(err)
-	}
+	dbConns := make(map[int]*sql.DB)
 
-	defer db.Close()
+	for _, database := range configuration.Databases {
+		connString := buildConnectionString(&database)
+		db, err := sql.Open("postgres", connString)
+		if err != nil {
+			log.Fatal(err)
+		}
+		dbConns[database.Index] = db
+	}
 
 	var failed, succeeded int
 
@@ -170,7 +172,8 @@ func main() {
 
 		if len(test.Queries) == 1 {
 			// Handle case where the result is compared to the value specified in the test
-			query := test.Queries[0]
+			dbindex := test.Queries[0].DbIndex
+			query := test.Queries[0].Query
 
 			// Make a slice for the values
 			values := make([]interface{}, len(test.Values))
@@ -179,7 +182,7 @@ func main() {
 				scanArgs[i] = &values[i]
 			}
 
-			err = db.QueryRow(query).Scan(scanArgs...)
+			err = dbConns[dbindex].QueryRow(query).Scan(scanArgs...)
 			if err != nil {
 				log.Printf("Test '%v' FAILED. Error querying the database: %v", test.Name, err)
 				failed += 1
@@ -238,16 +241,19 @@ func main() {
 
 		} else if len(test.Queries) == 2 {
 			// Handle case where the result must be compared to the output of another query
-			query1 := test.Queries[0]
-			query2 := test.Queries[1]
+			dbindex1 := test.Queries[0].DbIndex
+			query1 := test.Queries[0].Query
 
-			rows1, err := db.Query(query1)
+			dbindex2 := test.Queries[1].DbIndex
+			query2 := test.Queries[1].Query
+
+			rows1, err := dbConns[dbindex1].Query(query1)
 			if err != nil {
 				log.Fatal(err)
 			}
 			defer rows1.Close()
 
-			rows2, err := db.Query(query2)
+			rows2, err := dbConns[dbindex2].Query(query2)
 			if err != nil {
 				log.Fatal(err)
 			}

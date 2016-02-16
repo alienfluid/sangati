@@ -5,19 +5,29 @@ import (
 	"os"
 )
 
+type Query struct {
+	DbIndex	int
+	Query	string
+}
+
 type Test struct {
 	Name     string
 	Types    []string
-	Queries  []string
+	Queries  []Query
 	Operator string
 	Values   []string
 }
 
-type Configuration struct {
+type Database struct {
 	Host   string
 	Port   int
 	DbName string
-	Tests  []Test
+	Index  int
+}
+
+type Configuration struct {
+	Databases 	[]Database
+	Tests  		[]Test
 }
 
 func parseConfigurationFile(path string, conf *Configuration) error {

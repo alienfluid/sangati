@@ -1,27 +1,55 @@
 {
-	"Host": "dwp.rsdb.axialmarket.com",
-	"Port": 5439,
-	"DbName": "dwp",
+    "Databases" : [
+                    {
+                        "Host": "dwp.rsdb.axialmarket.com",
+	                    "Port": 5439,
+	                    "DbName": "dwp",
+                        "Index": 1
+                    },
+                    {   "Host": "prod-ro.db.axialmarket.com",
+                        "Port": 5432,
+                        "DbName": "axial",
+                        "Index": 2
+                    }
+                ],
 	"Tests": [
 				{
 					"Name": "Active company count greater than 1",
                     "Types": ["int"],
-					"Queries": ["SELECT COUNT(*) FROM company_dimension WHERE is_active = True"],
+					"Queries": [
+                                {
+                                    "DbIndex": 1, 
+                                    "Query": "SELECT COUNT(*) FROM company_dimension WHERE is_active = True"
+                                }
+                            ],
 					"Values": ["1"],
 					"Operator": "eq"
 				},
 				{
 					"Name": "Ten users",
 					"Types": ["date", "string", "int"],
-                    "Queries": ["SELECT date(tos_date), email, 42 from user_dimension order by user_dimension_id limit 10"],
+                    "Queries": [
+                                {
+                                    "DbIndex": 1, 
+                                    "Query": "SELECT date(tos_date), email, 42 from user_dimension order by user_dimension_id limit 10"
+                                }
+                            ],
 					"Values": ["2015-01-01", "ahmedf@gmail.com", "42"],
 					"Operator": "lt"
 				},
 				{
 					"Name": "Compare two queries",
 					"Types": ["string", "date"],
-                    "Queries": ["SELECT email, date(created_on) FROM user_dimension ORDER BY user_dimension_id LIMIT 100", 
-                                "SELECT email, date(updated_on) FROM user_dimension ORDER BY user_dimension_id LIMIT 100"],
+                    "Queries": [
+                                {
+                                    "DbIndex": 1,
+                                    "Query": "SELECT email, date(created_on) FROM user_dimension ORDER BY user_dimension_id LIMIT 100"
+                                },
+                                {
+                                    "DbIndex": 1,
+                                    "Query": "SELECT email, date(updated_on) FROM user_dimension ORDER BY user_dimension_id LIMIT 100"
+                                }
+                            ],
 					"Values": []
 				}               
 			]
