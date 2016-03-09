@@ -2,131 +2,13 @@ package main
 
 import (
 	"database/sql"
-	"errors"
 	"flag"
 	_ "github.com/lib/pq"
 	"log"
-	"os"
 	"reflect"
 	"strconv"
 	"time"
 )
-
-func buildConnectionString(database *Database) string {
-	var connString string
-
-	// The username and password for the db must be read from the environment
-	// variables
-	dbuser := os.Getenv("DBUSER" + strconv.Itoa(database.Index))
-	dbpass := os.Getenv("DBPASS" + strconv.Itoa(database.Index))
-
-	connString = "host=" + database.Host
-	connString += " port=" + strconv.Itoa(database.Port)
-	connString += " dbname=" + database.DbName
-	connString += " user=" + dbuser
-	connString += " password=" + dbpass
-
-	return connString
-}
-
-func compareTime(val1 time.Time, val2 time.Time, op string) bool {
-	switch {
-	case op == "eq":
-		return val1.Equal(val2)
-	case op == "lt":
-		return val1.Before(val2)
-	case op == "gt":
-		return val1.After(val2)
-	case op == "lte":
-		return val1.Before(val2) || val1.Equal(val2)
-	case op == "gte":
-		return val1.After(val2) || val1.Equal(val2)
-	default:
-		log.Fatal("Invalid operator '", op, "' specified")
-	}
-	return false
-}
-
-func compareInt64(val1 int64, val2 int64, op string) bool {
-	switch {
-	case op == "eq":
-		return val1 == val2
-	case op == "lt":
-		return val1 < val2
-	case op == "gt":
-		return val1 > val2
-	case op == "lte":
-		return val1 <= val2
-	case op == "gte":
-		return val1 >= val2
-	default:
-		log.Fatal("Invalid operator '", op, "' specified")
-	}
-	return false
-}
-
-func compareString(val1 string, val2 string, op string) bool {
-	switch {
-	case op == "eq":
-		return val1 == val2
-	case op == "lt":
-		return val1 < val2
-	case op == "gt":
-		return val1 > val2
-	case op == "lte":
-		return val1 <= val2
-	case op == "gte":
-		return val1 >= val2
-	default:
-		log.Fatal("Invalid operator '", op, "' specified")
-	}
-	return false
-}
-
-func validateTestStructure(test *Test) error {
-	// Verify that at least one type is specified and that all types are supported
-	if len(test.Types) < 1 {
-		return errors.New("The Types array must contain at least one supported type")
-	}
-	for _, typ := range test.Types {
-		if typ != "string" && typ != "int" && typ != "date" {
-			return errors.New("The Types array contains an unsupported type")
-		}
-	}
-
-	// If Values are specified, the should be of the same length as the Types
-	if len(test.Values) > 0 {
-		if len(test.Values) != len(test.Types) {
-			return errors.New("The Types array and the Values array are not of the same length")
-		}
-	}
-
-	// If Values are specified, verify that they can convert to the right types
-	if len(test.Values) > 0 {
-		for index, typ := range test.Types {
-			switch {
-			case typ == "string":
-				if reflect.TypeOf(test.Values[index]) != reflect.TypeOf(" ") {
-					return errors.New("Value of type string expected")
-				}
-			case typ == "int":
-				_, err := strconv.Atoi(test.Values[index])
-				if err != nil {
-					return errors.New("Value of type int expected")
-				}
-			case typ == "date":
-				_, err := time.Parse("2006-02-01", test.Values[index])
-				if err != nil {
-					return errors.New("Value of type date (YYYY-MM-DD) expected")
-				}
-			default:
-				log.Fatal("Invalid type specified (error verifying values)")
-			}
-		}
-	}
-
-	return nil
-}
 
 func main() {
 	var err error
