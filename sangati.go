@@ -223,7 +223,16 @@ func main() {
 	}
 
 	var failed, succeeded = 0, 0
-
+    
+    type Result struct {
+        testName    string
+        result      bool
+        message     string
+    }
+    
+    var results []Result
+    var msg string
+    
 	// Run through the tests
     logInfo.Printf("Executing specified tests (%v)", len(configuration.Tests))
 	for _, test := range configuration.Tests {
@@ -233,36 +242,53 @@ func main() {
 		err = validateTestStructure(&test)
 		if err != nil {
 			failed++
-			logInfo.Printf("Test failed with error '%v'", err)
-			continue
+			msg = fmt.Sprintf("Test failed with error '%v'", err)
+			results = append(results, Result{testName: test.Name, result: false, message: msg})
+            continue
 		}
 
 		var result bool
 		if len(test.Queries) == 1 {
 			result, err = runSingleQueryTest(test, dbConns)
 			if result {
-				succeeded++
-				logInfo.Printf("Test succeeded")
+				succeeded++           
+				msg = "Test succeeded"
+                results = append(results, Result{testName: test.Name, result: result, message: msg})
 			} else {
 				failed++
-				logInfo.Printf("Test failed with error '%v'", err)
+				msg = fmt.Sprintf("Test failed with error '%v'", err)
+                results = append(results, Result{testName: test.Name, result: result, message: msg})
 			}
 		} else if len(test.Queries) == 2 {
 			result, err = runDualQueryTest(test, dbConns)
 			if result {
-				succeeded++
-				logInfo.Printf("Test succeeded")
+				succeeded++           
+				msg = "Test succeeded"
+                results = append(results, Result{testName: test.Name, result: result, message: msg})
 			} else {
 				failed++
-				logInfo.Printf("Test failed with error '%v'", err)
+				msg = fmt.Sprintf("Test failed with error '%v'", err)
+                results = append(results, Result{testName: test.Name, result: result, message: msg})
 			}
 		} else {
-			logError.Fatal("Invalid configuration file format. More than two queries detected in one test.")
+			failed++
+            msg = fmt.Sprintf("Zero or more than two queries specified in the test")
+            results = append(results, Result{testName: test.Name, result: false, message: msg})
 		}
 	}
 
+    // Print summary of results and details about any failures
 	logInfo.Printf("Total tests executed: %v", len(configuration.Tests))
 	logInfo.Printf("Total succeeded: %v", succeeded)
 	logInfo.Printf("Total failed: %v", failed)
+    
+    if failed > 0 {
+        logError.Printf("Failure details:")
+        for _, res := range results {
+            if res.result == false {
+                logError.Printf("Test: %v, Message: %v", res.testName, res.message)
+            }
+        }
+    }
 
 }
