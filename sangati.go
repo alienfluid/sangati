@@ -196,25 +196,28 @@ func main() {
 	flag.Parse()
 
 	if *confFilePtr == "" {
-		log.Fatal("Configuration file not specified.")
+		logError.Fatalf("The configuration file was not specified")
 	}
 
+    logInfo.Printf("Executing tests from file %v", *confFilePtr)
+    
 	// Read and parse the configuration file
 	var configuration Configuration
 	err = parseConfigurationFile(*confFilePtr, &configuration)
 	if err != nil {
-		log.Fatal("Could not parse configuration file, Error: ", err)
+		logError.Fatalf("Could not parse configuration file with error '%v'", err)
 	}
 
 	// A map of all the database connections, by index
 	dbConns := make(map[int]*sql.DB)
 
 	// Connect to each database specified in the configuation file
-	for _, database := range configuration.Databases {
+	logInfo.Print("Establishing database connections")
+    for _, database := range configuration.Databases {
 		connString := buildConnectionString(&database)
 		db, err := sql.Open("postgres", connString)
 		if err != nil {
-			log.Fatal(err)
+			logError.Fatalf("Error connecting to database at host %v (index %v)", database.Host, database.Index)
 		}
 		dbConns[database.Index] = db
 	}
@@ -222,13 +225,15 @@ func main() {
 	var failed, succeeded = 0, 0
 
 	// Run through the tests
+    logInfo.Printf("Executing specified tests (%v)", len(configuration.Tests))
 	for _, test := range configuration.Tests {
-
-		// First validate whether the test structure is correct
+        logInfo.Printf("Executing test: %v", test.Name)
+		
+        // First validate whether the test structure is correct
 		err = validateTestStructure(&test)
 		if err != nil {
 			failed++
-			logInfo.Printf("'%v' failed with error '%v'", test.Name, err)
+			logInfo.Printf("Test failed with error '%v'", err)
 			continue
 		}
 
@@ -237,19 +242,19 @@ func main() {
 			result, err = runSingleQueryTest(test, dbConns)
 			if result {
 				succeeded++
-				logInfo.Printf("'%v' succeeded", test.Name)
+				logInfo.Printf("Test succeeded")
 			} else {
 				failed++
-				logInfo.Printf("'%v' failed with error '%v'", test.Name, err)
+				logInfo.Printf("Test failed with error '%v'", err)
 			}
 		} else if len(test.Queries) == 2 {
 			result, err = runDualQueryTest(test, dbConns)
 			if result {
 				succeeded++
-				logInfo.Printf("'%v' succeeded", test.Name)
+				logInfo.Printf("Test succeeded")
 			} else {
 				failed++
-				logInfo.Printf("'%v' failed with error '%v'", test.Name, err)
+				logInfo.Printf("Test failed with error '%v'", err)
 			}
 		} else {
 			logError.Fatal("Invalid configuration file format. More than two queries detected in one test.")
