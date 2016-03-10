@@ -1,53 +1,53 @@
 {
     "Databases" : [
                     {
-                        "Host": "dwp.rsdb.axialmarket.com",
-	                    "Port": 5439,
-	                    "DbName": "dwp",
+                        "Host": "host1.db.mydomain.com",
+	                    "Port": 5432,
+	                    "DbName": "public",
                         "Index": 1
                     },
-                    {   "Host": "prod-ro.db.axialmarket.com",
+                    {   "Host": "backup.db.mydomain.com",
                         "Port": 5432,
-                        "DbName": "axial",
+                        "DbName": "default",
                         "Index": 2
                     }
                 ],
 	"Tests": [
 				{
-					"Name": "Active company count greater than 1",
+					"Name": "Compare output of one query against one value",
                     "Types": ["int"],
 					"Queries": [
                                 {
                                     "DbIndex": 1, 
-                                    "Query": "SELECT COUNT(*) FROM company_dimension WHERE is_active = True"
+                                    "Query": "SELECT COUNT(1) FROM users"
                                 }
                             ],
-					"Values": ["1"],
-					"Operator": "eq"
+					"Values": ["0"],
+					"Operator": "gt"
 				},
 				{
-					"Name": "Ten users",
-					"Types": ["date", "string", "int"],
+					"Name": "Compare output of one query against multiple values",
+					"Types": ["int", "string"],
                     "Queries": [
                                 {
                                     "DbIndex": 1, 
-                                    "Query": "SELECT date(tos_date), email, 42 from user_dimension order by user_dimension_id limit 10"
+                                    "Query": "SELECT name, email FROM users WHERE id = 4"
                                 }
                             ],
-					"Values": ["2015-01-01", "ahmedf@gmail.com", "42"],
-					"Operator": "lt"
+					"Values": ["Farhan Ahmed", "some@email.com"],
+					"Operator": "eq"
 				},
 				{
-					"Name": "Compare two queries",
-					"Types": ["string", "date"],
+					"Name": "Compare output of one query against output of another",
+					"Types": ["date", "int"],
                     "Queries": [
                                 {
                                     "DbIndex": 1,
-                                    "Query": "SELECT email, date(created_on) FROM user_dimension ORDER BY user_dimension_id LIMIT 100"
+                                    "Query": "SELECT create_date, COUNT(1) FROM companies GROUP BY 1 ORDER BY 1"
                                 },
                                 {
-                                    "DbIndex": 1,
-                                    "Query": "SELECT email, date(updated_on) FROM user_dimension ORDER BY user_dimension_id LIMIT 100"
+                                    "DbIndex": 2,
+                                    "Query": "SELECT create_date, COUNT(1) FROM companies GROUP BY 1 ORDER BY 1"
                                 }
                             ],
 					"Values": []

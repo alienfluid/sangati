@@ -1,6 +1,6 @@
 # Sangati
 
-*Sangati*, the Hindi term for *consistency*, is a command line tool to makes it easier to check for logical inconsistencies or business logic errors in your data. It does so by automatically executing a series of SQL statements (provided in a JSON-formatted configuration file) that each output a single _count_ as a result. This result is then compared to either static values or the output of another SQL statement using logical operators that are also specified in the configuration file. 
+*Sangati*, the Hindi term for *consistency*, is a command line tool to makes it easier to check for logical inconsistencies or business logic errors in your data. It does so by automatically executing a series of SQL statements and comparing the output to either values that are statically defined in a configuration file or the output of another SQL query. 
 
 While ideally these checks would be implemented as constraints on the respective tables in an RDBMS or as descriptive relationships in the ORM of choice, frequently it is not practical to do so. For example, the code might have been ported from a legacy system that did not use an ORM or the data might be sourced from an ETL process that does not respect the constraints of the source database. In such cases, Sangati provides a low-cost way for checking for obvious data integrity issues at some regular frequency (e.g. as part of the release process or nightly).
 
@@ -16,33 +16,75 @@ Currently, *Sangati* only supports connections to PostgreSQL and its variants. S
 
 ```
 {
-	"Host": "myhost.somedomain.com",
-	"Port": 5432,
-	"DbName": "main",
+    "Databases" : [
+                    {
+                        "Host": "host1.db.mydomain.com",
+	                    "Port": 5432,
+	                    "DbName": "public",
+                        "Index": 1
+                    },
+                    {   "Host": "backup.db.mydomain.com",
+                        "Port": 5432,
+                        "DbName": "default",
+                        "Index": 2
+                    }
+                ],
 	"Tests": [
 				{
-					"Name": "At least one transaction in the last day",
-					"Queries": ["SELECT COUNT(*) FROM transactions WHERE created_on > NOW() - INTERVAL '1 DAY'"],
-					"Value": 0,
+					"Name": "Compare output of one query against one value",
+                    "Types": ["int"],
+					"Queries": [
+                                {
+                                    "DbIndex": 1, 
+                                    "Query": "SELECT COUNT(1) FROM users"
+                                }
+                            ],
+					"Values": ["0"],
 					"Operator": "gt"
 				},
 				{
-					"Name": "Check for spikes in errors",
-					"Queries": ["SELECT COUNT(*) FROM error_log WHERE created_on > NOW() - INTERVAL '1 DAY'"],
-					"Value": 100000,
-					"Operator": "lt"
+					"Name": "Compare output of one query against multiple values",
+					"Types": ["int", "string"],
+                    "Queries": [
+                                {
+                                    "DbIndex": 1, 
+                                    "Query": "SELECT name, email FROM users WHERE id = 4"
+                                }
+                            ],
+					"Values": ["Farhan Ahmed", "some@email.com"],
+					"Operator": "eq"
 				},
 				{
-					"Name": "Distinct users must be greater than on equal to distinct companies",
-					"Queries": ["SELECT COUNT(DISTINCT id) FROM user",
-								"SELECT COUNT(DISTINCT id) FROM company"],
-					"Operator": "gte"
-				}
+					"Name": "Compare output of one query against output of another",
+					"Types": ["date", "int"],
+                    "Queries": [
+                                {
+                                    "DbIndex": 1,
+                                    "Query": "SELECT create_date, COUNT(1) FROM companies GROUP BY 1 ORDER BY 1"
+                                },
+                                {
+                                    "DbIndex": 2,
+                                    "Query": "SELECT create_date, COUNT(1) FROM companies GROUP BY 1 ORDER BY 1"
+                                }
+                            ],
+					"Values": []
+				}               
 			]
 }
+
 ```
 
-## Supported logical operators
+## Single vs. Multi-query tests
+
+### Single query tests
+
+Single query tests compare the output of a query to the static value(s) specified in the configuration file. The output of the query must be a single row of data, however multiple columns are supported. The data must be of one of the following types -
+
+* `string` (VARCHAR)
+* `int` (INT32)
+* `date` (DATE)
+ 
+The following operators are available to compare the output of the query to the value(s) specified in the configuration file.
 
 ```
 lt 		Less than 
@@ -52,51 +94,34 @@ gte     Greater than or equal to
 eq      Equal to
 ```
 
-## Examples
+Note that the operator applies to ALL the columns.
 
-* Specifying the connection details for the database to connect to
+### Multi-query tests
+
+Multi-query tests compare the output of one SQL statement to the output of another. The queries can be executed against different databases. Multi-query tests allow support the comparison of multiple rows as as well multiple columns (matrix), however `equality` is the only supported logical operator in such tests. 
+
+## Frequently Asked Questions
+
+* How do I specify the databases where the queries must be executed?
 
 ```
 	{
 		"Host": "myhost.somedomain.com",
 		"Port": 5432,
 		"DbName": "main"
+        "Index": 1
 	}
 ```
 
-The username and password must be specified as environment variables `DBUSER` and `DBPASS` respectively. If the environment variables are not set, Sangati assumes that the username and password are empty.
+The username and password must be specified as environment variables `DBUSER1` and `DBPASS1` respectively. If the environment variables are not set, Sangati assumes that the username and password are empty. When specifying multiple databases, the name of the environment variables to be set is the concatenation of `DBUSER` and `DBPASS` with the value of the `Index` field.
 
-* Check for at least one new transaction since yesterday (_compare output to static value_)
+* What types of data can be compared?
 
-```
-	{
-		"Name": "At least one transaction in the last day",
-		"Queries": ["SELECT COUNT(*) FROM transactions WHERE created_on > NOW() - INTERVAL '1 DAY'"],
-		"Value": 0,
-		"Operator": "gt"
-	}
-```				
+Currently, Sangati supports three data types --
 
-This test compares the output of the SQL statement to `0` and passes the test if the value is *greater than* `0` (as specified by the logical operator `gt`).
-
-* Check high-level consistency in user and company tables (_compare output to another SQL statement_)
-
-```
-{
-	"Name": "Distinct users must be greater than on equal to distinct companies",
-	"Queries": ["SELECT COUNT(DISTINCT id) FROM user",
-				"SELECT COUNT(DISTINCT id) FROM company"],
-	"Operator": "gte"
-}
-```
-
-This test compares the output of the first SQL statement to the output of the second SQL statement and passes the test if the first output is _greater than or equal to_ the second output (as specified by the logical operator `gte`).
-
-## Frequently Asked Questions
-
-* Where do I specify the username and password to connect to the database?
-
-	These must be specified in environment variables `DBUSER` and `DBPASS` respectively.
+`string` (VARCHAR)
+`int` (INT32)
+`date` (DATE)
 
 * What databases do you currently support?
 
