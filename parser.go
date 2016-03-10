@@ -2,19 +2,19 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"os"
-    "errors"
-    "log"
-    "reflect"
-    "strconv"
-    "time"
+	"reflect"
+	"strconv"
+	"time"
 )
 
-// Query describes the SQL query to be executed along with the index of the 
+// Query describes the SQL query to be executed along with the index of the
 // database on which it should be executed
 type Query struct {
-	DbIndex	int
-	Query	string
+	DbIndex int
+	Query   string
 }
 
 // Test describes a unit of test that needs to be executed
@@ -36,8 +36,8 @@ type Database struct {
 
 // Configuration describes the set of databases and tests that needs to run
 type Configuration struct {
-	Databases 	[]Database
-	Tests  		[]Test
+	Databases []Database
+	Tests     []Test
 }
 
 // Parses the specified configuration file to make sure it adheres to the structure
@@ -92,7 +92,7 @@ func validateTestStructure(test *Test) error {
 					return errors.New("Value of type date (YYYY-MM-DD) expected")
 				}
 			default:
-				log.Fatal("Invalid type specified (error verifying values)")
+				return fmt.Errorf("Unsupported value type specified (%v)", typ)
 			}
 		}
 	}

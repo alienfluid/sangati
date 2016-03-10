@@ -1,8 +1,8 @@
 package main
 
 import (
-    "time"
-    "log"
+	"log"
+	"time"
 )
 
 func compareTime(val1 time.Time, val2 time.Time, op string) bool {
