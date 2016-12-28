@@ -6,6 +6,20 @@ While ideally these checks would be implemented as constraints on the respective
 
 Currently, *Sangati* only supports connections to PostgreSQL and its variants. Support for other database systems will be added in the future.
 
+## Examples of logical constraints that can be tested for
+
+* Does every user row have an associated company?
+* Do the number of records added yesterday match in the production and data warehouse databases?
+* Were there any new records added to the sales table in the last day?
+* Are the number of events generated in the last hour below a certain expected threshold?
+
+## To download and compile
+
+```bash
+go get -v github.com/alienfluid/sangati
+go install github.com/alienfluid/sangati
+```
+
 ## Usage
 
 ```bash
@@ -76,6 +90,8 @@ Currently, *Sangati* only supports connections to PostgreSQL and its variants. S
 
 ## Single vs. Multi-query tests
 
+Sangati has two modes of operation and they are controlled by the structure of the individual tests in the configuration file.
+
 ### Single query tests
 
 Single query tests compare the output of a query to the static value(s) specified in the configuration file. The output of the query must be a single row of data, however multiple columns are supported. The data must be of one of the following types -
@@ -83,7 +99,8 @@ Single query tests compare the output of a query to the static value(s) specifie
 * `string` (VARCHAR)
 * `int` (INT32)
 * `date` (DATE)
- 
+* `timestamp` (TIMESTAMP) (of the format `2006-02-01 15:04:05.000000`)
+
 The following operators are available to compare the output of the query to the value(s) specified in the configuration file.
 
 ```csv
@@ -122,6 +139,7 @@ Currently, Sangati supports three data types --
 `string` (VARCHAR)
 `int` (INT32)
 `date` (DATE)
+`timestamp` (TIMESTAMP) (of the format `2006-02-01 15:04:05.000000`)
 
 * What databases do you currently support?
 
