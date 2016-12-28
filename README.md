@@ -8,19 +8,19 @@ Currently, *Sangati* only supports connections to PostgreSQL and its variants. S
 
 ## Usage
 
-```
+```bash
 ./sangati -c="path/to/configuration/file.json"
 ```
 
 ## Sample configuration file
 
-```
+```json
 {
     "Databases" : [
                     {
                         "Host": "host1.db.mydomain.com",
-	                    "Port": 5432,
-	                    "DbName": "public",
+                        "Port": 5432,
+                        "DbName": "public",
                         "Index": 1
                     },
                     {   "Host": "backup.db.mydomain.com",
@@ -29,34 +29,34 @@ Currently, *Sangati* only supports connections to PostgreSQL and its variants. S
                         "Index": 2
                     }
                 ],
-	"Tests": [
-				{
-					"Name": "Compare output of one query against one value",
+    "Tests": [
+                {
+                    "Name": "Compare output of one query against one value",
                     "Types": ["int"],
-					"Queries": [
+                    "Queries": [
                                 {
                                     "DbIndex": 1, 
                                     "Query": "SELECT COUNT(1) FROM users"
                                 }
                             ],
-					"Values": ["0"],
-					"Operator": "gt"
-				},
-				{
-					"Name": "Compare output of one query against multiple values",
-					"Types": ["int", "string"],
+                    "Values": ["0"],
+                    "Operator": "gt"
+                },
+                {
+                    "Name": "Compare output of one query against multiple values",
+                    "Types": ["int", "string"],
                     "Queries": [
                                 {
                                     "DbIndex": 1, 
                                     "Query": "SELECT name, email FROM users WHERE id = 4"
                                 }
                             ],
-					"Values": ["Farhan Ahmed", "some@email.com"],
-					"Operator": "eq"
-				},
-				{
-					"Name": "Compare output of one query against output of another",
-					"Types": ["date", "int"],
+                    "Values": ["Farhan Ahmed", "some@email.com"],
+                    "Operator": "eq"
+                },
+                {
+                    "Name": "Compare output of one query against output of another",
+                    "Types": ["date", "int"],
                     "Queries": [
                                 {
                                     "DbIndex": 1,
@@ -67,9 +67,9 @@ Currently, *Sangati* only supports connections to PostgreSQL and its variants. S
                                     "Query": "SELECT create_date, COUNT(1) FROM companies GROUP BY 1 ORDER BY 1"
                                 }
                             ],
-					"Values": []
-				}               
-			]
+                    "Values": []
+                }               
+            ]
 }
 
 ```
@@ -86,8 +86,8 @@ Single query tests compare the output of a query to the static value(s) specifie
  
 The following operators are available to compare the output of the query to the value(s) specified in the configuration file.
 
-```
-lt 		Less than 
+```csv
+lt      Less than
 lte     Less than or equal to
 gt      Greater than
 gte     Greater than or equal to
@@ -104,13 +104,13 @@ Multi-query tests compare the output of one SQL statement to the output of anoth
 
 * How do I specify the databases where the queries must be executed?
 
-```
-	{
-		"Host": "myhost.somedomain.com",
-		"Port": 5432,
-		"DbName": "main"
+```json
+    {
+        "Host": "myhost.somedomain.com",
+        "Port": 5432,
+        "DbName": "main"
         "Index": 1
-	}
+    }
 ```
 
 The username and password must be specified as environment variables `DBUSER1` and `DBPASS1` respectively. If the environment variables are not set, Sangati assumes that the username and password are empty. When specifying multiple databases, the name of the environment variables to be set is the concatenation of `DBUSER` and `DBPASS` with the value of the `Index` field.
@@ -125,7 +125,4 @@ Currently, Sangati supports three data types --
 
 * What databases do you currently support?
 
-	Only PostgreSQL is currently supported. Support for other databases is coming soon.
-
-
-
+    Only PostgreSQL is currently supported. Support for other databases is coming soon.
