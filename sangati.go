@@ -98,6 +98,15 @@ func runSingleQueryTest(test Test, dbConns map[int]*sql.DB) (bool, error) {
 			if !compareTime(value.(time.Time), expected, test.Operator) {
 				return false, fmt.Errorf("Logical constraint failed (expected= %v, returned= %v, operator= %v)", expected, value.(time.Time), test.Operator)
 			}
+		case "timestamp":
+			expected, err := time.Parse("2006-02-01 15:04:05.000000", test.Values[i])
+			if err != nil {
+				return false, err
+			}
+
+			if !compareTime(value.(time.Time), expected, test.Operator) {
+				return false, fmt.Errorf("Logical constraint failed (expected= %v, returned=%v, operator=%v)", expected, value.(time.Time), test.Operator)
+			}
 		default:
 			return false, fmt.Errorf("Unexpected type specified (%v)", test.Types[i])
 		}
