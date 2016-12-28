@@ -177,10 +177,10 @@ The username and password must be specified as environment variables `DBUSER1` a
 
 Currently, Sangati supports three data types --
 
-`string` (VARCHAR)
-`int` (INT32)
-`date` (DATE)
-`timestamp` (TIMESTAMP) (of the format `2006-02-01 15:04:05.000000`)
+* `string` (VARCHAR)
+* `int` (INT32)
+* `date` (DATE)
+* `timestamp` (TIMESTAMP) (of the format `2006-02-01 15:04:05.000000`)
 
 * What databases do you currently support?
 
