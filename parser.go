@@ -61,7 +61,7 @@ func validateTestStructure(test *Test) error {
 		return errors.New("The Types array must contain at least one supported type")
 	}
 	for _, typ := range test.Types {
-		if typ != "string" && typ != "int" && typ != "date" {
+		if typ != "string" && typ != "int" && typ != "date" && typ != "timestamp" {
 			return errors.New("The Types array contains an unsupported type")
 		}
 	}
