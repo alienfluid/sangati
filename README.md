@@ -113,9 +113,50 @@ eq      Equal to
 
 Note that the operator applies to ALL the columns.
 
+#### Example
+
+```json
+    {
+        "Name": "Compare output of one query against one value",
+        "Types": ["int"],
+        "Queries": [
+                    {
+                        "DbIndex": 1, 
+                        "Query": "SELECT COUNT(1) FROM users"
+                    }
+                ],
+        "Values": ["0"],
+        "Operator": "gt"
+    }
+```
+
+This test compares the output of the query (which is an `integer`) to the static value `0` and fails the test if the returned value is _not_ greater than `0`.
+
 ### Multi-query tests
 
 Multi-query tests compare the output of one SQL statement to the output of another. The queries can be executed against different databases. Multi-query tests allow support the comparison of multiple rows as as well multiple columns (matrix), however `equality` is the only supported logical operator in such tests. 
+
+#### Example
+
+```json
+    {
+        "Name": "Compare output of one query against output of another",
+        "Types": ["date", "int"],
+        "Queries": [
+                    {
+                        "DbIndex": 1,
+                        "Query": "SELECT create_date, COUNT(1) FROM companies GROUP BY 1 ORDER BY 1"
+                    },
+                    {
+                        "DbIndex": 2,
+                        "Query": "SELECT create_date, COUNT(1) FROM companies GROUP BY 1 ORDER BY 1"
+                    }
+                ],
+        "Values": []
+    } 
+```    
+
+This compares the output of the first query to the output of the second query (which runs on a different database, see `DbIndex`) and fails the test is the outputs are not equal. Equality is the only supported predicate in multi-query tests.
 
 ## Frequently Asked Questions
 
@@ -125,7 +166,7 @@ Multi-query tests compare the output of one SQL statement to the output of anoth
     {
         "Host": "myhost.somedomain.com",
         "Port": 5432,
-        "DbName": "main"
+        "DbName": "main",
         "Index": 1
     }
 ```
