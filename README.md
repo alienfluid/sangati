@@ -171,16 +171,20 @@ This compares the output of the first query to the output of the second query (w
     }
 ```
 
-The username and password must be specified as environment variables `DBUSER1` and `DBPASS1` respectively. If the environment variables are not set, Sangati assumes that the username and password are empty. When specifying multiple databases, the name of the environment variables to be set is the concatenation of `DBUSER` and `DBPASS` with the value of the `Index` field.
+The username and password must be specified as environment variables `DBUSER1` and `DBPASS1` respectively. If the environment variables are not set, Sangati assumes that the username and password are empty. 
+
+When specifying multiple databases, the name of the environment variables to be set is the concatenation of `DBUSER` and `DBPASS` with the value of the `Index` field. For example, for a database with `Index` set to `2`, the environment variables `DBUSER2` and `DBPASS2` must be specified for Sangati to successfully connect to it.
 
 * What types of data can be compared?
 
 Currently, Sangati supports three data types --
 
-* `string` (VARCHAR)
-* `int` (INT32)
-* `date` (DATE)
-* `timestamp` (TIMESTAMP) (of the format `2006-02-01 15:04:05.000000`)
+```csv
+string (VARCHAR)
+int (INT32)
+date (DATE)
+timestamp (TIMESTAMP) (of the format 2006-02-01 15:04:05.000000)
+```
 
 * What databases do you currently support?
 
