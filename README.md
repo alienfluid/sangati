@@ -4,6 +4,8 @@
 
 While ideally these checks would be implemented as constraints on the respective tables in an RDBMS or as descriptive relationships in the ORM of choice, frequently it is not practical to do so. For example, the code might have been ported from a legacy system that did not use an ORM or the data might be sourced from an ETL process that does not respect the constraints of the source database. In such cases, Sangati provides a low-cost way for checking for obvious data integrity issues at some regular frequency (e.g. as part of the release process or nightly).
 
+*Sangati* can act as a light-weight quality assurance tool in your overall Master Data Management (MDM) strategy. For example, it can be used to assure that no duplicates ever exist in the master data or that measures are standardized by checking for the presence of extreme values. Used this way, it can help with data governance and ensure that the organization keeps its master data clean. Being a command line tool that outputs to `STDOUT` and `STDERR`, it can be easily integrated within the existing MDM/data governance toolchain. 
+
 Currently, *Sangati* only supports connections to PostgreSQL and its variants. Support for other database systems will be added in the future.
 
 ## Examples of logical constraints that can be tested for
